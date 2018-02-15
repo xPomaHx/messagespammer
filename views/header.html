@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ru">
+    <head>
+        <meta charset="utf-8">
+            <meta content="width=device-width, initial-scale=1, shrink-to-fit=no" name="viewport">
+                <title>
+                    BOT+ Home
+                </title>
+                <link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+                    <link href="css/bootstrap.css" rel="stylesheet">
+                        <link href="css/bootstrap-grid.css" rel="stylesheet">
+                            <link href="css/bootstrap-reboot.css" rel="stylesheet">
+                                <link href="style.css" rel="stylesheet">
+                                </link>
+                            </link>
+                        </link>
+                    </link>
+                </link>
+            </meta>
+        </meta>
+    </head>
+    <body>
+        <section id="header">
+            <div class="container-fluid">
+                <div class="row align-items-center no-gutters text-center text-sm-left">
+                    <div class="col-12 col-sm-6 col-md-6">
+                        <a href="/">
+                            <img alt="" class="logo" src="images/home-logo.png"/>
+                        </a>
+                    </div>
+                    <div class="col text-sm-right">
+                        [[?model.renderdata.user]]
+                        <span class="name">
+                            [[=model.renderdata.user.displayName]]
+                        </span>
+                        <span class="name">
+                        </span>
+                        <img alt="" class="avatar" src="[[=model.renderdata.user.photos[0].value]]">
+                            [[??]]
+                            <a href="/auth/vk">
+                                <span class="name">
+                                    Войти
+                                </span>
+                            </a>
+                            <img alt="" class="avatar" src="images/avatar-home.png">
+                                [[?]]
+                            </img>
+                        </img>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </body>
+</html>

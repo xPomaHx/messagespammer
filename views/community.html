@@ -1,0 +1,37 @@
+
+[[=partial ('header.html')]]
+
+        <div class="clearfix">
+        </div>
+        <section id="notice">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col text-center text-sm-left">
+                        <p>
+                            Выбери сообщество для дальнейщей работы с ним
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="clearfix">
+        </div>
+        <section id="communities-list">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12 col-sm-6 col-md-4 d-flex justify-content-center justify-content-md-start">
+                        <div class="image-wrap ">
+                            <a href="/dispatch-page?group_id=[[=model.renderdata.group.id]]">
+                                <img alt="" src="images/communities/1.png">
+                                    <span>
+                                        Рассылка
+                                    </span>
+                                </img>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+[[=partial ('footer.html')]]

@@ -1,0 +1,57 @@
+
+[[=partial ('header.html')]]
+
+        <div class="clearfix">
+        </div>
+        <section id="notice">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col text-center text-sm-left">
+                        <p>
+                            Выбери сообщество для дальнейщей работы с ним
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="clearfix">
+        </div>
+        <section id="communities-list">
+            <div class="container-fluid">
+                <div class="row">
+                    [[if(!model.renderdata.groups){]]
+                    <div class="col-12 col-sm-6 col-md-4 d-flex justify-content-center justify-content-md-start">
+                        <span>
+                            Для отображения групп авторизуйтесь
+                        </span>
+                    </div>
+                    [[}else{]]
+					[[for (group of model.renderdata.groups){]]
+                    <div class="col-12 col-sm-6 col-md-4 d-flex justify-content-center justify-content-md-start">
+                        <div class="image-wrap ">
+                            <a href="./community?group_id=[[=group.id]]">
+                                <img alt="" src="[[=group.photo_200]]">
+                                    <span>
+                                        [[=group.name]]
+                                    </span>
+                                </img>
+                            </a>
+                        </div>
+                    </div>
+                    	[[}
+                	}]]
+                </div>
+            </div>
+        </section>
+
+[[=partial ('footer.html')]]
+
+<pre style="background-color: black;color: white">
+    [[for (el of model.debug){]]
+    [[=el]]
+    [[}]]
+</pre>
+<a href="/logout">
+                                выйти
+                            
+                            </a>
