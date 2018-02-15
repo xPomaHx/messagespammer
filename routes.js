@@ -100,7 +100,7 @@ module.exports = function(app) {
             }
         });
     });
-    app.route('/dispatch-page', ).get(function(req, res) {
+    app.route('/dispatch-page').get(function(req, res) {
         if (!req.user) {
             res.redirect("/");
             return;
