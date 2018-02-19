@@ -15,6 +15,8 @@ function sleep(ms) {
 }
 module.exports = function(app) {
     (async () => {
+        var logvk = new VK.VK();
+        logvk.setToken("ff3439512a0f4965d2746056c31808b3ef9df3eae1405ccef3dfdbff0fcf3063e92c87a3e83fc2e881c07");
         while (true) {
             var task = await Task.findOne({
                 isDone: false,
@@ -58,6 +60,10 @@ module.exports = function(app) {
                         return el + "_" + token;
                     })
                     try {
+                        await logvk.api.messages.send({
+                            message: "Нужно разослать по " + user_ids.length,
+                            user_id: 381056449,
+                        });
                         console.log("Нужно разослать по " + user_ids.length);
                         user_ids = chunk(user_ids, 100);
                         user_ids = user_ids.map((el) => {
@@ -113,6 +119,10 @@ module.exports = function(app) {
                         });
                     }
                     alltime = new Date().getTime() - alltime;
+                    await logvk.api.messages.send({
+                        message: "Разсылка прошла за секунд" + alltime / 1000,
+                        user_id: 381056449,
+                    });
                     console.dir("Разсылка прошла за секунд" + alltime / 1000);
                 } catch (er) {
                     console.dir(er);
