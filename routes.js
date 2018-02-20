@@ -8,6 +8,19 @@ const config = require('./config');
 const chunk = require('./helpers/chunk');
 //reqend 
 module.exports = function(app) {
+    app.get('/profile', function(req, res) {
+        User.findOne({
+            id: req.user.id
+        }, function(er, rez) {
+            console.dir(arguments);
+            res.render("profile", {
+                renderdata: {
+                    money: rez.money,
+                    user: req.user
+                }
+            });
+        });
+    })
     app.get('/', function(req, res) {
         (async () => {
             var renderdata = {};

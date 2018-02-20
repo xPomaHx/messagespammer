@@ -30,12 +30,12 @@
                     </div>
                     <div class="col text-sm-right">
                         [[?model.renderdata.user]]
-                        <span class="name">
+                        <a href="/profile"><span class="name">
                             [[=model.renderdata.user.displayName]]
                         </span>
                         <span class="name">
                         </span>
-                        <img alt="" class="avatar" src="[[=model.renderdata.user.photos[0].value]]">
+                        <img alt="" class="avatar" src="[[=model.renderdata.user.photos[0].value]]"></img></a>
                             [[??]]
                             <a href="/auth/vk">
                                 <span class="name">
@@ -45,7 +45,7 @@
                             <img alt="" class="avatar" src="images/avatar-home.png">
                                 [[?]]
                             </img>
-                        </img>
+                        
                     </div>
                 </div>
             </div>

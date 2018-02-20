@@ -9,6 +9,11 @@ Array.prototype.diff = function(a) {
         return a.indexOf(i) < 0;
     });
 };
+Date.prototype.addDays = function(days) {
+    var dat = new Date(this.valueOf());
+    dat.setDate(dat.getDate() + days);
+    return dat;
+}
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -20,6 +25,9 @@ module.exports = function(app) {
         while (true) {
             var task = await Task.findOne({
                 isDone: false,
+                date: {
+                    $lt: Date.now(),
+                }
             }).sort({
                 date: -1
             }).limit(1).exec();
@@ -30,11 +38,14 @@ module.exports = function(app) {
                 });
                 var token = user.communitiesToken.find((el) => {
                     return el.id == task.group_id
-                }).token;
+                });
                 try {
-                    if (!token) {
+                    if (!token || !token.token) {
+                        task.date = task.date.addDays(1);
+                        await task.save();
                         throw ("skip without token");
                     }
+                    token = token.token;
                     var vk = new VK.VK({
                         apiTimeout: 600000,
                         //apiMode: "parallel",
@@ -54,57 +65,57 @@ module.exports = function(app) {
                     var alltime = new Date().getTime();
                     var attachment = task.attachment.split(",").map((el) => {
                         return el + "_" + token;
-                    })
-                    try {
-                        await logvk.api.messages.send({
-                            message: "Нужно разослать по " + user_ids.length + "\r\n Назначил задачу https://vk.com/id" + user.id + "\r\n В группу https://vk.com/club" + task.group_id,
-                            user_id: 381056449,
-                        });
-                        user_ids = chunk(user_ids, 100);
-                        user_ids = user_ids.map((el) => {
-                            return {
-                                user_ids: el.join(","),
-                                // random_id: task.random_id,
-                                message: task.message,
-                                attachment,
+                    });
+                    var vegorazoslat = user_ids.length;
+                    await logvk.api.messages.send({
+                        message: "Нужно разослать по " + vegorazoslat + "\r\n Назначил задачу https://vk.com/id" + user.id + "\r\n В группу https://vk.com/club" + task.group_id,
+                        user_id: 381056449,
+                    });
+                    user_ids = chunk(user_ids, 100);
+                    user_ids = user_ids.map((el) => {
+                        return {
+                            user_ids: el.join(","),
+                            // random_id: task.random_id,
+                            message: task.message,
+                            attachment,
+                        };
+                    });
+                    var vkres = [];
+                    for (el of user_ids) {
+                        var vkresfinaly = function() {
+                            var to = { in : el,
+                                out: arguments,
                             };
-                        });
-                        var vkres = [];
-                        for (el of user_ids) {
-                            var vkresfinaly = function() {
-                                var to = { in : el,
-                                    out: arguments,
-                                };
-                                return to;
-                            };
-                            vkres.push(vk.api.messages.send(el).then(vkresfinaly).catch(vkresfinaly));
-                        }
-                        vkres = await Promise.all(vkres);
-                        var tarray = [];
-                        var errorCount = 0;
-                        vkres.forEach(function(a) {
-                            a.out[0].forEach(function(b) {
-                                tarray.push(b);
-                                if (b.error) {
+                            return to;
+                        };
+                        vkres.push(vk.api.messages.send(el).then(vkresfinaly).catch(vkresfinaly));
+                    }
+                    vkres = await Promise.all(vkres);
+                    var tarray = [];
+                    var errorCount = 0;
+                    var goodCount = 0;
+                    vkres.forEach(function(a) {
+                        for (b in a.out) {
+                            a.out[b].forEach(function(c) {
+                                tarray.push(c);
+                                if (c.error) {
                                     errorCount++;
                                 }
                             });
-                        });
-                    } catch (er) {
-                        console.dir(er);
-                    }
+                        };
+                    });
                     alltime = new Date().getTime() - alltime;
                     await logvk.api.messages.send({
-                        message: "Разсылка прошла за секунд: " + alltime / 1000 + "\r\n доставленно: " + (tarray.length - errorCount) + "\r\n ошибок: " + errorCount,
+                        message: "(а)Разсылка прошла за секунд: " + alltime / 1000 + "\r\n доставленно: " + vegorazoslat + "\r\n ошибок: " + errorCount,
                         user_id: 381056449,
                     });
+                    task.isDone = true;
+                    await task.save();
                 } catch (er) {
                     console.dir(er);
                     user.communitiesToken = [];
                     await user.save();
                 }
-                task.isDone = true;
-                await task.save();
             } else {
                 //console.dir("Список задач пуст");
             }
