@@ -1,13 +1,13 @@
-const passport = require('passport');
-const VkStrategy = require('passport-vkontakte').Strategy;
-const dotengine = require('express-dot-engine');
-const express = require('express');
-const path = require('path');
-const bodyParser = require('body-parser');
-const expresssession = require('express-session');
-const MongoStore = require('connect-mongo')(expresssession);
-var User = require(__dirname + '/models/User.js');
-const config = require('./config');
+const passport = require("passport");
+const VkStrategy = require("passport-vkontakte").Strategy;
+const dotengine = require("express-dot-engine");
+const express = require("express");
+const path = require("path");
+const bodyParser = require("body-parser");
+const expresssession = require("express-session");
+const MongoStore = require("connect-mongo")(expresssession);
+var User = require(__dirname + "/models/User.js");
+const config = require("./config");
 //reqend
 passport.serializeUser(function(user, done) {
     done(null, user);
@@ -37,7 +37,7 @@ passport.use(new VkStrategy({
         //"docs",
         "manage"
     ],
-    profileFields: ['email'],
+    profileFields: ["email"],
 }, function verify(accessToken, refreshToken, params, profile, done) {
     
     var query = {
@@ -57,22 +57,22 @@ passport.use(new VkStrategy({
     });
 }));
 module.exports = function(app) {
-    app.use(express.static(__dirname + '/public'));
-    app.set('views', __dirname + '/views');
-    app.engine('html', dotengine.__express);
-    app.set('views', path.join(__dirname, './views'));
-    app.set('view engine', 'html');
-    app.use(require('cookie-parser')());
+    app.use(express.static(__dirname + "/public"));
+    app.set("views", __dirname + "/views");
+    app.engine("html", dotengine.__express);
+    app.set("views", path.join(__dirname, "./views"));
+    app.set("view engine", "html");
+    app.use(require("cookie-parser")());
     app.use(bodyParser.urlencoded({
         extended: true
     }));
     app.use(bodyParser.json());
     app.use(expresssession({
-        secret: 'keyboard cat',
+        secret: "keyboard cat",
         resave: true,
         saveUninitialized: true,
         store: new MongoStore({
-            url: 'mongodb://localhost/vkspammer',
+            url: "mongodb://localhost/vkspammer",
             ttl: 14 * 24 * 60 * 60 // = 14 days. Default
         })
     }));

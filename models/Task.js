@@ -10,7 +10,6 @@ const taskSchema = new Schema({
     user_id: Number,
     message: String,
     attachment: String,
-    random_id: Number,
     isDone: {
         type: Boolean,
         default: false,

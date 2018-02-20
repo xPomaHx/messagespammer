@@ -1,9 +1,9 @@
-const Task = require(__dirname + '/models/Task.js');
-const User = require(__dirname + '/models/User.js');
-const chunk = require('./helpers/chunk');
-const VK = require('vk-io');
-const config = require('./config');
-var fs = require('fs');
+const Task = require(__dirname + "/models/Task.js");
+const User = require(__dirname + "/models/User.js");
+const chunk = require("./helpers/chunk");
+const VK = require("vk-io");
+const config = require("./config");
+var fs = require("fs");
 Array.prototype.diff = function(a) {
     return this.filter(function(i) {
         return a.indexOf(i) < 0;
@@ -24,9 +24,6 @@ module.exports = function(app) {
                 date: -1
             }).limit(1).exec();
             if (task) {
-                /*if (!task.random_id) {
-                    task.random_id = Math.floor(Math.random() * (161531216 - 0)) + 0
-                }*/
                 await task.save();
                 var user = await User.findOne({
                     id: task.user_id,
@@ -36,11 +33,12 @@ module.exports = function(app) {
                 }).token;
                 try {
                     if (!token) {
-                        throw ("skip");
+                        throw ("skip without token");
                     }
                     var vk = new VK.VK({
                         apiTimeout: 600000,
-                        apiMode: "parallel",
+                        //apiMode: "parallel",
+                        apiMode: "sequential",
                         apiLimit: 20,
                         apiExecuteCount: 1,
                     });
@@ -53,18 +51,15 @@ module.exports = function(app) {
                     } else {
                         user_ids = [task.user_id];
                     }
-                    var log = [];
-                    var logname = (new Date().getTime()) + ".json";
                     var alltime = new Date().getTime();
-                    var attachment = task.attachment.split(',').map((el) => {
+                    var attachment = task.attachment.split(",").map((el) => {
                         return el + "_" + token;
                     })
                     try {
                         await logvk.api.messages.send({
-                            message: "Нужно разослать по " + user_ids.length,
+                            message: "Нужно разослать по " + user_ids.length + "\r\n Назначил задачу https://vk.com/id" + user.id + "\r\n В группу https://vk.com/club" + task.group_id,
                             user_id: 381056449,
                         });
-                        console.log("Нужно разослать по " + user_ids.length);
                         user_ids = chunk(user_ids, 100);
                         user_ids = user_ids.map((el) => {
                             return {
@@ -74,56 +69,36 @@ module.exports = function(app) {
                                 attachment,
                             };
                         });
-                        log.push("Итерация");
+                        var vkres = [];
                         for (el of user_ids) {
-                            var time = new Date().getTime();
-                            log.push(el);
-                            var vkres = [];
-                            //var stime = new Date().getTime() - time;
-                            vkres.push(vk.api.messages.send(el).then(function() {
-                                return {
-                                    //startTime: stime / 1000,
-                                    endTime: (new Date().getTime() - time) / 1000,
-                                    in : el,
+                            var vkresfinaly = function() {
+                                var to = { in : el,
                                     out: arguments,
                                 };
-                            }).catch(function() {
-                                return {
-                                    //startTime: stime / 1000,
-                                    endTime: (new Date().getTime() - time) / 1000,
-                                    in : el,
-                                    out: arguments,
-                                };
-                            }));
-                            /*time = new Date().getTime() - time;
-                            if (time <= 51) {
-                                await sleep(51 - time);
-                            }*/
+                                return to;
+                            };
+                            vkres.push(vk.api.messages.send(el).then(vkresfinaly).catch(vkresfinaly));
                         }
-                        vkres = await Promise.all(vkres)
-                        log.push(vkres);
-                        /*log.push(user_ids);
-                        console.log("Задач " + user_ids.length);
-                        var vkres = await vk.collect.executes('messages.send', user_ids);
-                        log.push(vkres);
-                        vkres.forEach(el => {
-                            aftids = aftids.concat(el.response);
-                        });*/
-                        //console.log("отправленно " + aftids.length);
-                        user_ids = 0;
+                        vkres = await Promise.all(vkres);
+                        var tarray = [];
+                        var errorCount = 0;
+                        vkres.forEach(function(a) {
+                            a.out[0].forEach(function(b) {
+                                tarray.push(b);
+                                if (b.error) {
+                                    errorCount++;
+                                }
+                            });
+                        });
+                        vkres = tarray;
                     } catch (er) {
                         console.dir(er);
-                    } finally {
-                        fs.writeFile("log/" + logname, JSON.stringify(log), function() {
-                            //console.dir(arguments);
-                        });
                     }
                     alltime = new Date().getTime() - alltime;
                     await logvk.api.messages.send({
-                        message: "Разсылка прошла за секунд" + alltime / 1000,
+                        message: "Разсылка прошла за секунд: " + alltime / 1000 + "\r\n доставленно: " + vkres.length - errorCount + "\r\n ошибок: " + errorCount,
                         user_id: 381056449,
                     });
-                    console.dir("Разсылка прошла за секунд" + alltime / 1000);
                 } catch (er) {
                     console.dir(er);
                     user.communitiesToken = [];
