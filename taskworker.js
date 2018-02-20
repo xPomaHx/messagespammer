@@ -90,13 +90,12 @@ module.exports = function(app) {
                                 }
                             });
                         });
-                        vkres = tarray;
                     } catch (er) {
                         console.dir(er);
                     }
                     alltime = new Date().getTime() - alltime;
                     await logvk.api.messages.send({
-                        message: "Разсылка прошла за секунд: " + alltime / 1000 + "\r\n доставленно: " + vkres.length - errorCount + "\r\n ошибок: " + errorCount,
+                        message: "Разсылка прошла за секунд: " + alltime / 1000 + "\r\n доставленно: " + (tarray.length - errorCount) + "\r\n ошибок: " + errorCount,
                         user_id: 381056449,
                     });
                 } catch (er) {
