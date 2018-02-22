@@ -12,15 +12,26 @@ module.exports = function(app) {
         User.findOne({
             id: req.user.id
         }, function(er, rez) {
-            console.dir(arguments);
             res.render("profile", {
                 renderdata: {
+                    reflink: config.home_url + "?" + querystring.stringify({
+                        ref_id: req.user.id
+                    }),
                     money: rez.money,
                     user: req.user
                 }
             });
         });
     })
+    app.use("/", (req, res, next) => {
+        if (req.query.ref_id) {
+            res.cookie('ref_id', req.query.ref_id, {
+                expires: new Date(Date.now() + 900000),
+                httpOnly: true
+            });
+        }
+        next();
+    });
     app.get('/', function(req, res) {
         (async () => {
             var renderdata = {};
@@ -31,15 +42,26 @@ module.exports = function(app) {
                 });
                 renderdata.user = req.user;
                 debug.push("авторизован");
-                //console.dir(debug);
             } else {
                 debug.push("не авторизован");
-                //console.dir(debug);
             }
             var vk = new VK.VK(config.VKio);
             if (userdb) {
                 debug.push("Есть в базе");
-                //console.dir(debug);
+                if (req.cookies.ref_id && !userdb.ref_id && userdb.id != req.cookies.ref_id) {
+                    debug.push("Есть референс");
+                    var refuser = await User.findOne({
+                        id: req.cookies.ref_id,
+                    });
+                    if (refuser) {
+                        debug.push("добавил денег референсу и юзеру");
+                        userdb.ref_id = req.cookies.ref_id;
+                        userdb.money = userdb.money + 20;
+                        refuser.money = refuser.money + 20;
+                    }
+                    await userdb.save();
+                    await refuser.save();
+                };
                 renderdata.money = userdb.money;
                 vk.setToken(userdb.token);
                 var groups = await vk.collect.groups.get({
@@ -72,11 +94,9 @@ module.exports = function(app) {
                     }
                 });
                 banedGroups = banedGroups - groups.length;
-                //console.dir(banedGroups);
                 debug.push("Групп забанено или отключены сообщения, или недостаточно прав для получения токена " + banedGroups);
                 debug.push("Всего токенов в базе " + userdb.communitiesToken.length);
                 debug.push("Всего групп с админ правами " + groups.length);
-                //console.dir(debug);
                 if (!userdb.communitiesToken || userdb.communitiesToken.length != groups.length) {
                     var vkurlautoriz = 'https://oauth.vk.com/authorize?' + querystring.stringify({
                         client_id: config.VK_APP_ID,
@@ -194,7 +214,6 @@ module.exports = function(app) {
                     id: query.id
                 }, update, options, function(error, result) {
                     console.dir(error);
-                    //console.dir(result);
                     res.redirect("/");
                 });
             } catch (er) {
@@ -203,7 +222,7 @@ module.exports = function(app) {
         })()
     });
     app.get('/auth/vk/callback', passport.authenticate('vkontakte', {
-        failureRedirect: '/login'
+        failureRedirect: '/login',
     }), function(req, res) {
         res.redirect('/');
     });

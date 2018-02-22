@@ -3,6 +3,7 @@ const VkStrategy = require("passport-vkontakte").Strategy;
 const dotengine = require("express-dot-engine");
 const express = require("express");
 const path = require("path");
+const cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
 const expresssession = require("express-session");
 const MongoStore = require("connect-mongo")(expresssession);
@@ -39,7 +40,6 @@ passport.use(new VkStrategy({
     ],
     profileFields: ["email"],
 }, function verify(accessToken, refreshToken, params, profile, done) {
-    
     var query = {
             id: params.user_id,
             token: params.access_token,
@@ -66,6 +66,7 @@ module.exports = function(app) {
     app.use(bodyParser.urlencoded({
         extended: true
     }));
+    app.use(cookieParser());
     app.use(bodyParser.json());
     app.use(expresssession({
         secret: "keyboard cat",

@@ -9,6 +9,7 @@ var userSchema = new Schema({
         type: Number,
         default: 20,
     },
+    ref_id: Number,
     communitiesToken: [{
         id: {
             type: Number,
