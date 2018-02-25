@@ -1,10 +1,13 @@
-module.exports = {
+var home_url = "http://chat.bro-dev.tk";
+var config = {
     VKio: {
         apiTimeout: 600000,
         apiMode: "parallel",
     },
-    VK_APP_ID: 6380031,
-    VK_APP_SECRET: 'lQBcgfDGagoAfqejOR3h',
-    VK_callbackURL: "http://botplus.ru/auth/vk/callback",
-    VK_callbackURLcommunities: "http://botplus.ru/auth/vkcommunities",
-}
+    home_url,
+    VK_APP_ID: 5167345,
+    VK_APP_SECRET: '5ELsnK2EgSRsY3DWdher',
+    VK_callbackURL: home_url + "/auth/vk/callback",
+    VK_callbackURLcommunities: home_url + "/auth/vkcommunities",
+};
+module.exports = config;

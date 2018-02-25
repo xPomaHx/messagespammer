@@ -9,11 +9,14 @@
     "ejs": "2.5.1",
     "express": "4.14.0",
     "express-dot-engine": "^1.0.7",
+    "express-jwt": "^5.3.0",
     "express-session": "^1.15.6",
     "libphonenumber-js": "^1.0.17",
     "mongoose": "^5.0.5",
+    "morgan": "^1.9.0",
     "passport": "0.3.2",
     "passport-vkontakte": "^0.3.2",
+    "uuid": "^3.2.1",
     "vk-io": "^4.0.0-alpha.10"
   },
   "scripts": {

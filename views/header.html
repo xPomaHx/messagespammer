@@ -29,23 +29,25 @@
                         </a>
                     </div>
                     <div class="col text-sm-right">
-                        [[?model.renderdata.user]]
-                        <a href="/profile"><span class="name">
-                            [[=model.renderdata.user.displayName]]
-                        </span>
-                        <span class="name">
-                        </span>
-                        <img alt="" class="avatar" src="[[=model.renderdata.user.photos[0].value]]"></img></a>
-                            [[??]]
-                            <a href="/auth/vk">
-                                <span class="name">
-                                    Войти
-                                </span>
-                            </a>
-                            <img alt="" class="avatar" src="images/avatar-home.png">
-                                [[?]]
-                            </img>
-                        
+                        [[if(model.renderdata.user){]]
+                        <a href="/profile">
+                            <span class="name">
+                                [[=model.renderdata.user.first_name]]
+[[=model.renderdata.user.last_name]]
+                            </span>
+                            <span class="name">
+                            </span>
+                            <img alt="" class="avatar" src="[[=model.renderdata.user.photo_max_orig]]"/>
+                        </a>
+                        [[}else{]]
+                        <a href="/auth/vk">
+                            <span class="name">
+                                Войти
+                            </span>
+                        </a>
+                        <img alt="" class="avatar" src="images/avatar-home.png">
+                            [[}]]
+                        </img>
                     </div>
                 </div>
             </div>

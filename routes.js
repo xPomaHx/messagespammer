@@ -1,4 +1,3 @@
-const passport = require('passport');
 const VK = require('vk-io');
 const axios = require('axios');
 const User = require(__dirname + '/models/User.js');
@@ -6,6 +5,8 @@ const Task = require(__dirname + '/models/Task.js');
 const querystring = require('querystring');
 const config = require('./config');
 const chunk = require('./helpers/chunk');
+const uuidv4 = require('uuid/v4');
+var jwt = require('jsonwebtoken');
 //reqend 
 module.exports = function(app) {
     app.get('/profile', function(req, res) {
@@ -22,7 +23,7 @@ module.exports = function(app) {
                 }
             });
         });
-    })
+    });
     app.use("/", (req, res, next) => {
         if (req.query.ref_id) {
             res.cookie('ref_id', req.query.ref_id, {
@@ -41,6 +42,7 @@ module.exports = function(app) {
                     id: req.user.id
                 });
                 renderdata.user = req.user;
+                console.dir(renderdata.user);
                 debug.push("авторизован");
             } else {
                 debug.push("не авторизован");
@@ -80,7 +82,7 @@ module.exports = function(app) {
                         fields: "can_message",
                     };
                 });
-                groups = (await vk.collect.executes('groups.getById', groups)).map(el => {
+                groups = [(await vk.collect.executes('groups.getById', groups))].map(el => {
                     return el.response[0];
                 }).reduce(function(a, b) {
                     return a.concat(b);
@@ -94,7 +96,7 @@ module.exports = function(app) {
                     }
                 });
                 banedGroups = banedGroups - groups.length;
-                debug.push("Групп забанено или отключены сообщения, или недостаточно прав для получения токена " + banedGroups);
+                debug.push("Групп з`абанено или отключены сообщения, или недостаточно прав для получения токена " + banedGroups);
                 debug.push("Всего токенов в базе " + userdb.communitiesToken.length);
                 debug.push("Всего групп с админ правами " + groups.length);
                 if (!userdb.communitiesToken || userdb.communitiesToken.length != groups.length) {
@@ -103,7 +105,7 @@ module.exports = function(app) {
                         group_ids: groups.map((el) => {
                             return el.id
                         }).join(","),
-                        redirect_uri: config.VK_callbackURLcommunities,
+                        redirect_uri: config.VK_callbackURL,
                         scope: "manage,messages,photos,docs",
                         response_type: "code",
                     });
@@ -175,59 +177,102 @@ module.exports = function(app) {
             res.json("ok");
         })()
     });
-    app.get('/auth/vk', passport.authenticate('vkontakte'), function(req, res) {});
-    app.get('/auth/vkcommunities', function(req, res) {
+    app.get('/auth/vk', function(req, res) {
+        var vkurlautoriz = 'https://oauth.vk.com/authorize?' + querystring.stringify({
+            client_id: config.VK_APP_ID,
+            redirect_uri: config.VK_callbackURL,
+            scope: "offline ,groups",
+            response_type: "code",
+        });
+        res.redirect(vkurlautoriz);
+    });
+    app.get('/auth/vk/callback', function(req, res) {
         (async () => {
             try {
                 if (req.query.code) {
                     var url = "https://oauth.vk.com/access_token?" + querystring.stringify({
                         client_id: config.VK_APP_ID,
                         client_secret: config.VK_APP_SECRET,
-                        redirect_uri: config.VK_callbackURLcommunities,
+                        redirect_uri: config.VK_callbackURL,
                         code: req.query.code,
                     })
                     var vktoken = (await axios.get(url)).data;
                 }
-                var ta = [];
-                for (key in vktoken) {
-                    var act = "access_token_";
-                    if (key.indexOf(act) != -1) {
-                        var id = key.replace(act, "");
-                        var token = vktoken[key];
-                        ta.push({
-                            id,
-                            token
-                        });
-                    }
-                }
-                var query = {
-                        id: req.user.id,
-                        communitiesToken: ta,
-                    },
-                    update = query,
-                    options = {
-                        upsert: true,
-                        //new: true,
-                        //setDefaultsOnInsert: true
-                    };
-                User.findOneAndUpdate({
-                    id: query.id
-                }, update, options, function(error, result) {
-                    console.dir(error);
+                if (vktoken.access_token) {
+                    vk = new VK.VK(config.VKio);
+                    vk.setToken(vktoken.access_token);
+                    var user = (await vk.api.users.get({
+                        user_id: vktoken.user_id,
+                        fields: "photo_max_orig",
+                    }))[0];
+                    var query = {
+                            id: vktoken.user_id,
+                            token: vktoken.access_token,
+                            first_name: user.first_name,
+                            last_name: user.last_name,
+                            photo_max_orig: user.photo_max_orig,
+                        },
+                        update = query,
+                        options = {
+                            upsert: true,
+                            //new: true,
+                            //setDefaultsOnInsert: true
+                        };
+                    user = await User.findOneAndUpdate({
+                        id: query.id
+                    }, update, options, function(error, result) {
+                        console.dir(error);
+                    });
+                    var accessToken = jwt.sign(user.dataToJWT, config.privateKey, {
+                        expiresIn: "60s",
+                    });
+                    var refreshToken = jwt.sign({
+                        rand: uuidv4()
+                    }, config.privateKey, {
+                        expiresIn: "30d",
+                    });
+                    user.refreshToken = refreshToken;
+                    res.cookie("accessToken", accessToken);
+                    res.cookie("refreshToken", refreshToken);
+                    await user.save();
                     res.redirect("/");
-                });
+                } else {
+                    var ta = [];
+                    for (key in vktoken) {
+                        var act = "access_token_";
+                        if (key.indexOf(act) != -1) {
+                            var id = key.replace(act, "");
+                            var token = vktoken[key];
+                            ta.push({
+                                id,
+                                token,
+                            });
+                        }
+                    }
+                    var query = {
+                            id: req.user.id,
+                            communitiesToken: ta,
+                        },
+                        update = query,
+                        options = {
+                            upsert: true,
+                            //new: true,
+                            //setDefaultsOnInsert: true
+                        };
+                    User.findOneAndUpdate({
+                        id: query.id
+                    }, update, options, function(error, result) {
+                        console.dir(error);
+                        res.redirect("/");
+                    });
+                }
             } catch (er) {
                 console.dir(er);
             }
         })()
     });
-    app.get('/auth/vk/callback', passport.authenticate('vkontakte', {
-        failureRedirect: '/login',
-    }), function(req, res) {
-        res.redirect('/');
-    });
     app.get('/logout', function(req, res) {
-        req.logout();
+        res.clearCookie("accessToken");
         res.redirect('/');
     });
 }
