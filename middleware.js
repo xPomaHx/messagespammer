@@ -36,10 +36,10 @@ module.exports = function(app) {
                     } catch (er) {
                         error = er;
                     }
-                    console.dir(error);
                     if (user && !error) {
                         var accessToken = jwt.sign(user.dataToJWT, config.privateKey, {
-                            expiresIn: "30m",
+                           // expiresIn: "30m",
+                            expiresIn: "10s",
                         });
                         var refreshToken = jwt.sign({
                             rand: uuidv4()

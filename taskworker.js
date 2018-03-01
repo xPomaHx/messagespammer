@@ -21,7 +21,7 @@ function sleep(ms) {
 module.exports = function(app) {
     (async () => {
         var logvk = new VK.VK();
-        logvk.setToken("ff3439512a0f4965d2746056c31808b3ef9df3eae1405ccef3dfdbff0fcf3063e92c87a3e83fc2e881c07");
+        logvk.setToken("532868e5bb56b0a9551ca9288948ab9a2213ad2e77aae86abbe0a9ce9bf12747d2d83267f3a80646dd193");
         while (true) {
             var task = await Task.findOne({
                 isDone: false,
@@ -36,9 +36,12 @@ module.exports = function(app) {
                 var user = await User.findOne({
                     id: task.user_id,
                 });
+                
                 var token = user.communitiesToken.find((el) => {
                     return el.id == task.group_id
                 });
+                
+                
                 try {
                     if (!token || !token.token) {
                         task.date = task.date.addDays(1);
@@ -53,7 +56,7 @@ module.exports = function(app) {
                         apiLimit: 20,
                         apiExecuteCount: 1,
                     });
-                    vk.setToken(token);
+                        vk.setToken(token);
                     if (!task.test) {
                         var msg = (await vk.collect.messages.getDialogs());
                         var user_ids = msg.map((el) => {

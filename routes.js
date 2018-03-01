@@ -42,7 +42,6 @@ module.exports = function(app) {
                     id: req.user.id
                 });
                 renderdata.user = req.user;
-                console.dir(renderdata.user);
                 debug.push("авторизован");
             } else {
                 debug.push("не авторизован");
@@ -218,13 +217,15 @@ module.exports = function(app) {
                             //new: true,
                             //setDefaultsOnInsert: true
                         };
+                    
                     user = await User.findOneAndUpdate({
                         id: query.id
                     }, update, options, function(error, result) {
                         console.dir(error);
                     });
                     var accessToken = jwt.sign(user.dataToJWT, config.privateKey, {
-                        expiresIn: "60s",
+                        //expiresIn: "30m",
+                        expiresIn: "10s",
                     });
                     var refreshToken = jwt.sign({
                         rand: uuidv4()
