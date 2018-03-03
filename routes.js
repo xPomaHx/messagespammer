@@ -1,12 +1,11 @@
 const VK = require('vk-io');
 const axios = require('axios');
-const User = require(__dirname + '/models/User.js');
-const Task = require(__dirname + '/models/Task.js');
+const User = require(appRoot + '/models/User.js');
+const Task = require(appRoot + '/models/Task.js');
 const querystring = require('querystring');
-const config = require('./config');
-const chunk = require('./helpers/chunk');
+const config = require(appRoot + '/config');
+const chunk = require(appRoot + '/helpers/chunk');
 const uuidv4 = require('uuid/v4');
-var jwt = require('jsonwebtoken');
 //reqend 
 module.exports = function(app) {
     app.get('/profile', function(req, res) {
@@ -34,28 +33,28 @@ module.exports = function(app) {
         next();
     });
     app.get('/', function(req, res) {
+
         (async () => {
             var renderdata = {};
-            var debug = [];
             if (req.user) {
                 var userdb = await User.findOne({
                     id: req.user.id
                 });
                 renderdata.user = req.user;
-                debug.push("авторизован");
+                res.debug.push("авторизован");
             } else {
-                debug.push("не авторизован");
+                res.debug.push("не авторизован");
             }
             var vk = new VK.VK(config.VKio);
             if (userdb) {
-                debug.push("Есть в базе");
+                res.debug.push("Есть в базе");
                 if (req.cookies.ref_id && !userdb.ref_id && userdb.id != req.cookies.ref_id) {
-                    debug.push("Есть референс");
+                    res.debug.push("Есть референс");
                     var refuser = await User.findOne({
                         id: req.cookies.ref_id,
                     });
                     if (refuser) {
-                        debug.push("добавил денег референсу и юзеру");
+                        res.debug.push("добавил денег референсу и юзеру");
                         userdb.ref_id = req.cookies.ref_id;
                         userdb.money = userdb.money + 20;
                         refuser.money = refuser.money + 20;
@@ -95,9 +94,9 @@ module.exports = function(app) {
                     }
                 });
                 banedGroups = banedGroups - groups.length;
-                debug.push("Групп з`абанено или отключены сообщения, или недостаточно прав для получения токена " + banedGroups);
-                debug.push("Всего токенов в базе " + userdb.communitiesToken.length);
-                debug.push("Всего групп с админ правами " + groups.length);
+                res.debug.push("Групп з`абанено или отключены сообщения, или недостаточно прав для получения токена " + banedGroups);
+                res.debug.push("Всего токенов в базе " + userdb.communitiesToken.length);
+                res.debug.push("Всего групп с админ правами " + groups.length);
                 if (!userdb.communitiesToken || userdb.communitiesToken.length != groups.length) {
                     var vkurlautoriz = 'https://oauth.vk.com/authorize?' + querystring.stringify({
                         client_id: config.VK_APP_ID,
@@ -113,11 +112,14 @@ module.exports = function(app) {
                 }
                 renderdata.groups = groups;
             } else {
-                debug.push("нет в базе");
+                res.debug.push("нет в базе");
+                res.logout();
+                res.redirect("/auth/vk");
+                return;
             }
             res.render('index', {
                 renderdata,
-                debug,
+                debug: res.debug,
             });
         })();
     });
@@ -196,76 +198,63 @@ module.exports = function(app) {
                         code: req.query.code,
                     })
                     var vktoken = (await axios.get(url)).data;
-                }
-                if (vktoken.access_token) {
-                    vk = new VK.VK(config.VKio);
-                    vk.setToken(vktoken.access_token);
-                    var user = (await vk.api.users.get({
-                        user_id: vktoken.user_id,
-                        fields: "photo_max_orig",
-                    }))[0];
-                    var query = {
-                            id: vktoken.user_id,
-                            token: vktoken.access_token,
-                            first_name: user.first_name,
-                            last_name: user.last_name,
-                            photo_max_orig: user.photo_max_orig,
-                        },
-                        update = query,
-                        options = {
-                            upsert: true,
-                            //new: true,
-                            //setDefaultsOnInsert: true
-                        };
-                    
-                    user = await User.findOneAndUpdate({
-                        id: query.id
-                    }, update, options, function(error, result) {
-                        console.dir(error);
-                    });
-                    var accessToken = jwt.sign(user.dataToJWT, config.privateKey, {
-                        //expiresIn: "30m",
-                        expiresIn: "10s",
-                    });
-                    var refreshToken = jwt.sign({
-                        rand: uuidv4()
-                    }, config.privateKey, {
-                        expiresIn: "30d",
-                    });
-                    user.refreshToken = refreshToken;
-                    res.cookie("accessToken", accessToken);
-                    res.cookie("refreshToken", refreshToken);
-                    await user.save();
-                    res.redirect("/");
-                } else {
-                    var ta = [];
-                    for (key in vktoken) {
-                        var act = "access_token_";
-                        if (key.indexOf(act) != -1) {
-                            var id = key.replace(act, "");
-                            var token = vktoken[key];
-                            ta.push({
-                                id,
-                                token,
-                            });
-                        }
-                    }
-                    var query = {
-                            id: req.user.id,
-                            communitiesToken: ta,
-                        },
-                        update = query,
-                        options = {
-                            upsert: true,
-                            //new: true,
-                            //setDefaultsOnInsert: true
-                        };
-                    User.findOneAndUpdate({
-                        id: query.id
-                    }, update, options, function(error, result) {
-                        console.dir(error);
+                    if (vktoken.access_token) {
+                        vk = new VK.VK(config.VKio);
+                        vk.setToken(vktoken.access_token);
+                        var user = (await vk.api.users.get({
+                            user_id: vktoken.user_id,
+                            fields: "photo_max_orig",
+                        }))[0];
+                        var query = {
+                                id: vktoken.user_id,
+                                token: vktoken.access_token,
+                                first_name: user.first_name,
+                                last_name: user.last_name,
+                                photo_max_orig: user.photo_max_orig,
+                            },
+                            update = query,
+                            options = {
+                                upsert: true,
+                                new: true,
+                                setDefaultsOnInsert: true
+                            };
+                        user = await User.findOneAndUpdate({
+                            id: query.id
+                        }, update, options, function(error, result) {
+                            console.dir(error);
+                        });
+                        await res.refreshTokens(user);
                         res.redirect("/");
-                    });
+                    } else {
+                        var ta = [];
+                        for (key in vktoken) {
+                            var act = "access_token_";
+                            if (key.indexOf(act) != -1) {
+                                var id = key.replace(act, "");
+                                var token = vktoken[key];
+                                ta.push({
+                                    id,
+                                    token,
+                                });
+                            }
+                        }
+                        var query = {
+                                id: req.user.id,
+                                communitiesToken: ta,
+                            },
+                            update = query,
+                            options = {
+                                upsert: true,
+                                //new: true,
+                                //setDefaultsOnInsert: true
+                            };
+                        User.findOneAndUpdate({
+                            id: query.id
+                        }, update, options, function(error, result) {
+                            console.dir(error);
+                            res.redirect("/");
+                        });
+                    }
                 }
             } catch (er) {
                 console.dir(er);
@@ -273,7 +262,7 @@ module.exports = function(app) {
         })()
     });
     app.get('/logout', function(req, res) {
-        res.clearCookie("accessToken");
+        res.logout();
         res.redirect('/');
     });
 }

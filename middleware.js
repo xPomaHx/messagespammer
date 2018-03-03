@@ -3,12 +3,12 @@ const express = require("express");
 const path = require("path");
 const cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
-var User = require(__dirname + "/models/User.js");
-const uuidv4 = require('uuid/v4');
-const config = require("./config");
-var jwt = require('jsonwebtoken');
+var User = require(appRoot + "/models/User.js");
+const config = require(appRoot + "/config");
+var broJWTAuth = require(appRoot + '/helpers/broJWTAuth');
 //reqend
 module.exports = function(app) {
+    app.disable('x-powered-by');
     app.use(cookieParser());
     app.use(express.static(__dirname + "/public"));
     app.set("views", __dirname + "/views");
@@ -19,47 +19,8 @@ module.exports = function(app) {
         extended: true
     }));
     app.use(function(req, res, next) {
-        (async () => {
-            if (req.cookies.accessToken) {
-                try {
-                    req.user = jwt.verify(req.cookies.accessToken, config.privateKey);
-                } catch (er) {
-                    var error = er;
-                }
-                if (error) {
-                    error = undefined;
-                    try {
-                        jwt.verify(req.cookies.refreshToken, config.privateKey);
-                        var user = await User.findOne({
-                            refreshToken: req.cookies.refreshToken,
-                        });
-                    } catch (er) {
-                        error = er;
-                    }
-                    if (user && !error) {
-                        var accessToken = jwt.sign(user.dataToJWT, config.privateKey, {
-                           // expiresIn: "30m",
-                            expiresIn: "10s",
-                        });
-                        var refreshToken = jwt.sign({
-                            rand: uuidv4()
-                        }, config.privateKey, {
-                            expiresIn: "30d",
-                        });
-                        user.refreshToken = refreshToken;
-                        res.cookie("accessToken", accessToken);
-                        res.cookie("refreshToken", refreshToken);
-                        req.user = user.dataToJWT;
-                        await user.save();
-                    } else {
-                        res.clearCookie("accessToken");
-                        res.clearCookie("refreshToken");
-                        res.redirect("/auth/vk");
-                        return;
-                    }
-                }
-            }
-            next();
-        })();
+        res.debug = [];
+        next();
     });
+    app.use(broJWTAuth);
 }
