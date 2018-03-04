@@ -15,12 +15,6 @@ var userSchema = new Schema({
     last_name: String,
     photo_max_orig: String,
     refreshToken: String,
-    communitiesToken: [{
-        id: {
-            type: Number,
-        },
-        token: String,
-    }],
     token: String,
 });
 userSchema.virtual('dataToJWT').get(function() {

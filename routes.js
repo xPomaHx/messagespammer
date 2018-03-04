@@ -2,6 +2,7 @@ const VK = require('vk-io');
 const axios = require('axios');
 const User = require(appRoot + '/models/User.js');
 const Task = require(appRoot + '/models/Task.js');
+const Group = require(appRoot + '/models/Group.js');
 const querystring = require('querystring');
 const config = require(appRoot + '/config');
 const chunk = require(appRoot + '/helpers/chunk');
@@ -33,7 +34,6 @@ module.exports = function(app) {
         next();
     });
     app.get('/', function(req, res) {
-
         (async () => {
             var renderdata = {};
             if (req.user) {
@@ -93,16 +93,28 @@ module.exports = function(app) {
                         return false;
                     }
                 });
+                var group_ids = groups.map((el) => {
+                    return el.id
+                });
                 banedGroups = banedGroups - groups.length;
-                res.debug.push("Групп з`абанено или отключены сообщения, или недостаточно прав для получения токена " + banedGroups);
-                res.debug.push("Всего токенов в базе " + userdb.communitiesToken.length);
+                var grdb = await Group.find({
+                    id: {
+                        $in: group_ids
+                    },
+                    tokens: {
+                        $exists: true,
+                        $not: {
+                            $size: 0
+                        }
+                    },
+                });
+                res.debug.push("Групп забанено или отключены сообщения, или недостаточно прав для получения токена " + banedGroups);
+                res.debug.push("Всего токенов в базе " + grdb.length);
                 res.debug.push("Всего групп с админ правами " + groups.length);
-                if (!userdb.communitiesToken || userdb.communitiesToken.length != groups.length) {
+                if (!grdb || grdb.length != groups.length) {
                     var vkurlautoriz = 'https://oauth.vk.com/authorize?' + querystring.stringify({
                         client_id: config.VK_APP_ID,
-                        group_ids: groups.map((el) => {
-                            return el.id
-                        }).join(","),
+                        group_ids: group_ids.join(","),
                         redirect_uri: config.VK_callbackURL,
                         scope: "manage,messages,photos,docs",
                         response_type: "code",
@@ -143,12 +155,6 @@ module.exports = function(app) {
         }
         (async () => {
             var group_id = req.query.group_id;
-            var user = await User.findOne({
-                id: req.user.id,
-            });
-            var token = (await user.communitiesToken.find((el) => {
-                return el.id == group_id;
-            })).token;
             var tasks = await Task.find({
                 group_id
             });
@@ -226,32 +232,23 @@ module.exports = function(app) {
                         await res.refreshTokens(user);
                         res.redirect("/");
                     } else {
-                        var ta = [];
+                        var bulk = Group.collection.initializeUnorderedBulkOp();
                         for (key in vktoken) {
                             var act = "access_token_";
                             if (key.indexOf(act) != -1) {
-                                var id = key.replace(act, "");
+                                var id = +key.replace(act, "");
                                 var token = vktoken[key];
-                                ta.push({
-                                    id,
-                                    token,
+                                bulk.find({
+                                    id
+                                }).upsert().update({
+                                    $push: {
+                                        tokens: token,
+                                    }
                                 });
                             }
                         }
-                        var query = {
-                                id: req.user.id,
-                                communitiesToken: ta,
-                            },
-                            update = query,
-                            options = {
-                                upsert: true,
-                                //new: true,
-                                //setDefaultsOnInsert: true
-                            };
-                        User.findOneAndUpdate({
-                            id: query.id
-                        }, update, options, function(error, result) {
-                            console.dir(error);
+                        bulk.execute(function(err, rez) {
+                            console.dir(err);
                             res.redirect("/");
                         });
                     }
