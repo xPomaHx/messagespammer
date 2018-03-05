@@ -20,7 +20,7 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 var logvk = new VK.VK();
-logvk.setToken("532868e5bb56b0a9551ca9288948ab9a2213ad2e77aae86abbe0a9ce9bf12747d2d83267f3a80646dd193");
+logvk.setToken("cff6dc78686d1bfa21c95f75c4f6bb12c0ff64f734ec0310139a985bae85c66f591c75d3090ee9f8947b6");
 logvk.send = async function(message) {
     try {
         await logvk.api.messages.send({
@@ -45,14 +45,15 @@ var DoOneTask = async function() {
         return;
     }
     //await task.save();
-    var token = (await Group.findOne({
+    var grdb = (await Group.findOne({
         id: task.group_id
-    })).tokens[0];
-    if (!token) {
+    }));
+    if (!grdb || !grdb.tokens || grdb.tokens == []) {
         task.date = task.date.addDays(1);
         await task.save();
         return;
     }
+    var token = grdb.tokens[0];
     try {
         var vk = new VK.VK({
             apiTimeout: 600000,
@@ -98,7 +99,8 @@ var DoOneTask = async function() {
         task.isDone = true;
         await task.save();
     } catch (er) {
-        console.dir(er);
+        //console.dir(er);
+        console.dir("удаляю " + token);
         await Group.findOneAndUpdate({
             id: task.group_id
         }, {
