@@ -3,7 +3,6 @@ const express = require("express");
 const path = require("path");
 const cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
-var User = require(appRoot + "/models/User.js");
 const config = require(appRoot + "/config");
 var broJWTAuth = require(appRoot + '/helpers/broJWTAuth');
 //reqend

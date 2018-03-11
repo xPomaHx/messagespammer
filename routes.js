@@ -9,6 +9,22 @@ const chunk = require(appRoot + '/helpers/chunk');
 const uuidv4 = require('uuid/v4');
 //reqend 
 module.exports = function(app) {
+    app.get('/callback', function(req, res) {
+        (async () => {
+            var groups = await Group.find();
+            if(!groups){
+                return;
+            }
+            groups.forEach((group)=>{
+                //
+            });
+            var vk = new VK.VK(config.VKio);
+            vk.setToken("cff6dc78686d1bfa21c95f75c4f6bb12c0ff64f734ec0310139a985bae85c66f591c75d3090ee9f8947b6");
+            res.json(await vk.api.call('groups.getCallbackServers', {
+                group_id: 161531216
+            }));
+        })();
+    });
     app.get('/profile', function(req, res) {
         User.findOne({
             id: req.user.id
@@ -34,8 +50,14 @@ module.exports = function(app) {
         next();
     });
     app.get('/', function(req, res) {
+        var renderdata = {};
+        var finalRender = function() {
+            res.render('index', {
+                renderdata,
+                debug: res.debug,
+            });
+        };
         (async () => {
-            var renderdata = {};
             if (req.user) {
                 var userdb = await User.findOne({
                     id: req.user.id
@@ -44,6 +66,8 @@ module.exports = function(app) {
                 res.debug.push("авторизован");
             } else {
                 res.debug.push("не авторизован");
+                finalRender()
+                return;
             }
             var vk = new VK.VK(config.VKio);
             if (userdb) {
@@ -125,14 +149,10 @@ module.exports = function(app) {
                 renderdata.groups = groups;
             } else {
                 res.debug.push("нет в базе");
-                res.logout();
                 res.redirect("/auth/vk");
                 return;
             }
-            res.render('index', {
-                renderdata,
-                debug: res.debug,
-            });
+            finalRender();
         })();
     });
     app.route('/community').get(function(req, res) {
@@ -185,6 +205,8 @@ module.exports = function(app) {
         })()
     });
     app.get('/auth/vk', function(req, res) {
+        res.logout();
+        console.dir("auth");
         var vkurlautoriz = 'https://oauth.vk.com/authorize?' + querystring.stringify({
             client_id: config.VK_APP_ID,
             redirect_uri: config.VK_callbackURL,
@@ -221,11 +243,13 @@ module.exports = function(app) {
                             update = query,
                             options = {
                                 upsert: true,
-                                new: true,
-                                setDefaultsOnInsert: true
+                                //new: true,
+                                //setDefaultsOnInsert: true
                             };
+                        var queryId = query.id;
+                        delete query.id;
                         user = await User.findOneAndUpdate({
-                            id: query.id
+                            id: queryId,
                         }, update, options, function(error, result) {
                             console.dir(error);
                         });
@@ -260,6 +284,7 @@ module.exports = function(app) {
     });
     app.get('/logout', function(req, res) {
         res.logout();
+        delete req.user;
         res.redirect('/');
     });
 }
