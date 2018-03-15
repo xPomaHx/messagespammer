@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const bodyParser = require("body-parser");
 const config = require(appRoot + "/config");
 var broJWTAuth = require(appRoot + '/helpers/broJWTAuth');
+const callbackServer = require(appRoot + '/helpers/callbackServer');
 //reqend
 module.exports = function(app) {
     app.disable('x-powered-by');
@@ -14,6 +15,7 @@ module.exports = function(app) {
     app.engine("html", dotengine.__express);
     app.set("views", path.join(__dirname, "./views"));
     app.set("view engine", "html");
+    app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({
         extended: true
     }));

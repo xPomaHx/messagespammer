@@ -6,7 +6,15 @@ process.on('unhandledRejection', (reason, p) => {
 global.appRoot = __dirname;
 const express = require('express');
 const mongoose = require('mongoose');
-mongoose.connect("mongodb://localhost/vkspammer");
+mongoose.connect("mongodb://localhost/vkspammer", {
+    keepAlive: 360000,
+    connectTimeoutMS: 360000,
+    socketTimeoutMS: 360000
+});
+mongoose.connection.on('error', function() {
+    console.dir("dberror");
+    console.dir(arguments);
+});
 //mongoose.set("debug",true);
 const app = express();
 require('./middleware')(app);

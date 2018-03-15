@@ -5,6 +5,7 @@ var userSchema = new Schema({
     id: {
         type: Number,
         unique: true,
+        index: true,
     },
     money: {
         type: Number,

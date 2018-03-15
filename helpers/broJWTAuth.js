@@ -9,7 +9,6 @@ module.exports = function(req, res, next) {
             res.clearCookie("refreshToken");
         };
         res.refreshTokens = async function(user) {
-            
             var accessToken = jwt.sign(user.dataToJWT, config.privateKey, {
                 // expiresIn: "30m",
                 expiresIn: "60s",

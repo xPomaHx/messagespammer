@@ -9,20 +9,64 @@ const chunk = require(appRoot + '/helpers/chunk');
 const uuidv4 = require('uuid/v4');
 //reqend 
 module.exports = function(app) {
-    app.get('/callback', function(req, res) {
+    app.use(function(req, res, next) {
+        req.rawBody = '';
+        req.on('data', function(chunk) {
+            req.rawBody += chunk;
+            console.dir(chunk + "");
+        });
+        next();
+    });
+    app.get("/test", function(req, res) {
+        /* (async () => {
+             await Group.update({}, {
+                 $unset: {
+                     confirmationCode: true,
+                 }
+             }, {
+                 multi: true
+             })
+             res.json(1);
+         })();*/
+    });
+    app.route('/callback').get(function(req, res) {
+        res.send("ok");
+    }).post(function(req, res) {
         (async () => {
-            var groups = await Group.find();
-            if(!groups){
+            if (!req.body.type) {
                 return;
             }
-            groups.forEach((group)=>{
-                //
-            });
-            var vk = new VK.VK(config.VKio);
-            vk.setToken("cff6dc78686d1bfa21c95f75c4f6bb12c0ff64f734ec0310139a985bae85c66f591c75d3090ee9f8947b6");
-            res.json(await vk.api.call('groups.getCallbackServers', {
-                group_id: 161531216
-            }));
+            console.dir(req.body.type + " " + req.body.group_id);
+            switch (req.body.type) {
+                case 'confirmation':
+                    var gr = await Group.findOne({
+                        id: req.body.group_id
+                    }, "confirmationCode");
+                    if (gr) {
+                        res.send(gr.confirmationCode);
+                        return;
+                    }
+                    break;
+                case 'message_new':
+                case 'message_allow':
+                    await Group.updateOne({
+                        id: req.body.group_id
+                    }, {
+                        $push: {
+                            user_ids: req.body.object.user_id,
+                        }
+                    }, {
+                        upsert: true,
+                    });
+                    /*await gr.update({
+                        $push: {
+                            user_ids: req.body.object.user_id,
+                        }
+                    });*/
+                    //await gr.save();
+                    break;
+            }
+            res.send("ok");
         })();
     });
     app.get('/profile', function(req, res) {
@@ -271,7 +315,7 @@ module.exports = function(app) {
                                 });
                             }
                         }
-                        bulk.execute(function(err, rez) {
+                        await bulk.execute(function(err, rez) {
                             console.dir(err);
                             res.redirect("/");
                         });
