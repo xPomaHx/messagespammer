@@ -17,6 +17,7 @@ const taskSchema = new Schema({
     test: {
         type: Boolean,
         default: false,
-    }
+    },
+    log: String,
 });
 module.exports = mongoose.model('Task', taskSchema);

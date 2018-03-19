@@ -19,7 +19,7 @@ module.exports = {
             });
             if (cs && cs.status == "ok" && group.confirmationCode) {
                 //console.dir(cs);
-                console.dir("server ok " + group.id);
+                //console.dir("server ok " + group.id);
                 return;
             }
             if (cs) {
@@ -29,22 +29,30 @@ module.exports = {
                 }));
                 console.dir("deleteCallbackServer " + group.id);
             }
-            var csid = (await vk.api.call('groups.addCallbackServer', {
-                group_id: group.id,
-                url: config.botcallbackurl,
-                title: "botplus"
-            })).server_id;
-            var confirmationCode = (await vk.api.call('groups.getCallbackConfirmationCode', {
-                group_id: group.id
-            })).code;
-            group.confirmationCode = confirmationCode;
-            await group.save();
-            (await vk.api.call('groups.setCallbackSettings', {
-                group_id: group.id,
-                server_id: csid,
-                message_new: 1,
-                message_allow: 1,
-            }));
+            try {
+                var csid = (await vk.api.call('groups.addCallbackServer', {
+                    group_id: group.id,
+                    url: config.botcallbackurl,
+                    title: "botplus"
+                })).server_id;
+                var confirmationCode = (await vk.api.call('groups.getCallbackConfirmationCode', {
+                    group_id: group.id
+                })).code;
+                group.confirmationCode = confirmationCode;
+                await group.save();
+                (await vk.api.call('groups.setCallbackSettings', {
+                    group_id: group.id,
+                    server_id: csid,
+                    message_new: 1,
+                    message_allow: 1,
+                }));
+            } catch (er) {
+                if (er.code != 2000) {
+                    throw er;
+                } else {
+                    group.confirmationCode = "withoutclblserver";
+                }
+            }
             var msg = (await vk.collect.messages.getDialogs());
             var user_ids = msg.map((el) => {
                 return el.message.user_id;
@@ -61,7 +69,7 @@ module.exports = {
                 }
             });
             await group.save();
-            console.dir("server added " + group.id);
+            //console.dir("server added " + group.id);
         } catch (er) {
             /* if (er.code = 27) {
                  console.dir("удаляю " + token);
@@ -73,8 +81,8 @@ module.exports = {
                      }
                  });
              }*/
-            console.dir("addServ er " + group.id + " " + er.code);
-            console.dir(er);
+            //console.dir("addServ er " + group.id + " " + er.code);
+            // console.dir(er);
         }
     }
 }

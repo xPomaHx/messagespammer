@@ -22,4 +22,5 @@ require('./routes')(app);
 require('./taskworker')();
 app.listen(9999, () => {
     console.dir("ready!");
+    //console.dir(process.env);
 });

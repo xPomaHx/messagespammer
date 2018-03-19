@@ -18,17 +18,59 @@ module.exports = function(app) {
         next();
     });
     app.get("/test", function(req, res) {
-        /* (async () => {
-             await Group.update({}, {
-                 $unset: {
-                     confirmationCode: true,
-                 }
-             }, {
-                 multi: true
-             })
-             res.json(1);
-         })();*/
+        /*(async () => {
+            setTimeout(() => {
+                console.dir(1231231);
+            }, 9999);
+        })();
+        res.json(1);
+        return;*/
     });
+    var user_ads_cash = {
+        cash: {},
+        count: 0,
+        timeout: !1,
+        add: function(group_id, user_id) {
+            if (!this.cash[group_id]) this.cash[group_id] = [];
+            this.cash[group_id].push(user_id);
+            this.count++;
+            if (this.count >= 100) {
+                this.bulkAndClear();
+            }
+        },
+        bulkAndClear: async function() {
+            var cash = this.cash;
+            this.cash = {};
+            //console.dir(this.count);
+            this.count = 0;
+            clearTimeout(this.timeout);
+            this.timeout = setTimeout(() => {
+                //console.dir("with timeout");
+                //console.dir(cash);
+                this.bulkAndClear()
+            }, 10000);
+            if (Object.keys(cash).length == 0) return;
+            //console.time("timeWriteNewMsgUserId");
+            var bulk = Group.collection.initializeUnorderedBulkOp();
+            for (id in cash) {
+                var user_ids = cash[id];
+                bulk.find({
+                    id: +id,
+                }).upsert().update({
+                    $push: {
+                        "user_ids": {
+                            $each: user_ids,
+                        },
+                    }
+                });
+            }
+            await bulk.execute({
+                w: 0
+            }, function(err, rez) {});
+            //console.timeEnd("timeWriteNewMsgUserId");
+        },
+    }
+    user_ads_cash.bulkAndClear();
     app.route('/callback').get(function(req, res) {
         res.send("ok");
     }).post(function(req, res) {
@@ -36,7 +78,7 @@ module.exports = function(app) {
             if (!req.body.type) {
                 return;
             }
-            console.dir(req.body.type + " " + req.body.group_id);
+            //console.dir(req.body.type + " " + req.body.group_id);
             switch (req.body.type) {
                 case 'confirmation':
                     var gr = await Group.findOne({
@@ -49,7 +91,7 @@ module.exports = function(app) {
                     break;
                 case 'message_new':
                 case 'message_allow':
-                    await Group.updateOne({
+                    /*await Group.updateOne({
                         id: req.body.group_id
                     }, {
                         $push: {
@@ -57,13 +99,8 @@ module.exports = function(app) {
                         }
                     }, {
                         upsert: true,
-                    });
-                    /*await gr.update({
-                        $push: {
-                            user_ids: req.body.object.user_id,
-                        }
                     });*/
-                    //await gr.save();
+                    user_ads_cash.add(req.body.group_id, req.body.object.user_id);
                     break;
             }
             res.send("ok");
@@ -247,6 +284,26 @@ module.exports = function(app) {
             await task.save();
             res.json("ok");
         })()
+    });
+    app.get('/task/:task_id', function(req, res) {
+        try {
+            Task.findOne({
+                _id: req.params.task_id
+            }, {
+                log: 1,
+                _id: -1
+            }, function(er, rez) {
+                if (!rez || !rez.log) {
+                    res.statusCode = 404;
+                    res.send();
+                    return;
+                }
+                res.send("<pre>" + rez.log + "</pre>");
+            })
+        } catch (er) {
+            res.statusCode = 404;
+            res.send();
+        }
     });
     app.get('/auth/vk', function(req, res) {
         res.logout();
