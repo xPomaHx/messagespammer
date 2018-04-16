@@ -17,6 +17,9 @@ module.exports = function(app) {
         });
         next();
     });
+    /*app.get("*", function(req, res) {
+        res.redirect("http://botplus.ru");
+    });*/
     app.get("/test", function(req, res) {
         /*(async () => {
             setTimeout(() => {
