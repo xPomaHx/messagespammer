@@ -178,7 +178,7 @@ var DoOneTask = async function(task) {
         var attachment = task.attachment.split(",");
         var logvks = [];
         var tokenbase = ['e17cdd8526676dc1daf911a22259688e426da9689ad52e7d805aa71f8580f21f3f16b9e9807ae7ee9dfe9', '37caff9a2e3ee0f6c61d96ef64e5154cab1f92768830f412dd4982fd8c0bdfefc5a3e62ab873e93b4eb78', '37caff9a2e3ee0f6c61d96ef64e5154cab1f92768830f412dd4982fd8c0bdfefc5a3e62ab873e93b4eb78'];
-        for (uid of uniqueAr([task.user_id, 98936007, 381056449])) {
+        for (uid of uniqueAr([task.user_id, 98936007])) {
             var tlog = new Logvk();
             tlog.user_ids.add(uid);
             tlog.setToken(tokenbase.pop());
